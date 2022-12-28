@@ -27,6 +27,7 @@ struct Text {
    SDL_Rect *rect;
    char *text;
    int font_size;
+   char *font_name;
 };
 
 struct LabeledCell {
@@ -42,6 +43,9 @@ SDL_Color color_gray = {
 SDL_Color color_white = {
    255, 255, 255, 255
 };
+
+char *primary_font_name = "Waukegan_LDO_Bold.TTF";
+char *secondary_font_name = "WagnerModern.TTF";
 
 // Elevator side
 struct LabeledCell elevator_header_cells[SHAFTS_COUNT+1];
@@ -138,9 +142,8 @@ void set_text_size(int *text_width, int *text_height, char *text, int font_size)
 }
 
 void update_text(struct Text *text_struct, char *text) {
-   printf("Update text to: >%s<\n", text);
-   TTF_Font *font = TTF_OpenFont("WagnerModern.TTF", text_struct->font_size);
-   SDL_Surface *surface = TTF_RenderText_Solid(font, text, color_white);
+   TTF_Font *font = TTF_OpenFont(text_struct->font_name, text_struct->font_size);
+   SDL_Surface *surface = TTF_RenderText_Blended(font, text, color_white);
    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
    SDL_DestroyTexture(text_struct->texture);
    text_struct->texture = texture;
@@ -151,9 +154,9 @@ void update_text(struct Text *text_struct, char *text) {
    TTF_CloseFont(font);
 }
 
-void set_text(struct Text *text_struct, char* text, int font_size, int x, int y, int text_width, int text_height) {
-   TTF_Font *font = TTF_OpenFont("WagnerModern.TTF", font_size);
-   SDL_Surface *surface = TTF_RenderText_Solid(font, text, color_white);
+void set_text(struct Text *text_struct, char* text, int x, int y, int text_width, int text_height) {
+   TTF_Font *font = TTF_OpenFont(text_struct->font_name, text_struct->font_size);
+   SDL_Surface *surface = TTF_RenderText_Blended(font, text, color_white);
    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
    SDL_Rect *rect = malloc(sizeof(SDL_Rect));
    rect->x = x;
@@ -163,12 +166,11 @@ void set_text(struct Text *text_struct, char* text, int font_size, int x, int y,
    text_struct->rect = rect;
    text_struct->texture = texture;
    text_struct->text = text;
-   text_struct->font_size = font_size;
    SDL_FreeSurface(surface);
    TTF_CloseFont(font);
 }
 
-struct LabeledCell* construct_labeled_cell(int x, int y, int width, int height, char *text, int font_size) {
+struct LabeledCell* construct_labeled_cell(int x, int y, int width, int height, char *text, char *font_name, int font_size) {
    // 1. Create rect
    SDL_Rect *rect = malloc(sizeof(SDL_Rect));
    populate_rect(rect, x, y, width, height);
@@ -178,12 +180,14 @@ struct LabeledCell* construct_labeled_cell(int x, int y, int width, int height, 
    populate_rect(frame_rect, rect->x, rect->y, rect->w, rect->h);
    
    // 3. Create text_struct
-   struct Text *text_struct = malloc(sizeof(struct Text)); 
+   struct Text *text_struct = malloc(sizeof(struct Text));
+   text_struct->font_size = font_size;
+   text_struct->font_name = font_name;
    int text_width, text_height;
    set_text_size(&text_width, &text_height, text, font_size);
    int text_x, text_y;
    set_centered_position_in_cell(&text_x, &text_y, text_width, text_height, rect);
-   set_text(text_struct, text, font_size, text_x, text_y, text_width, text_height);
+   set_text(text_struct, text, text_x, text_y, text_width, text_height);
    
    // 4. Build cell struct and populate it with all member data
    struct LabeledCell *cell = malloc(sizeof(struct LabeledCell));
@@ -215,7 +219,7 @@ void create_elevator_cells() {
 	 strcat(text, "CAR ");
          strcat(text, num_char);
       }
-      struct LabeledCell *cell = construct_labeled_cell(cell_x, cell_y, CELL_WIDTH, CELL_HEIGHT, text, 20);
+      struct LabeledCell *cell = construct_labeled_cell(cell_x, cell_y, CELL_WIDTH, CELL_HEIGHT, text, secondary_font_name, 20);
       memmove(&elevator_header_cells[i], cell, sizeof(struct LabeledCell));
    }
 
@@ -229,7 +233,7 @@ void create_elevator_cells() {
       char num_chars[2];
       sprintf(num_chars, "%d", i);
       strcat(text, num_chars);
-      struct LabeledCell *cell = construct_labeled_cell(cell_x, cell_y, CELL_WIDTH, CELL_HEIGHT, text, 15);
+      struct LabeledCell *cell = construct_labeled_cell(cell_x, cell_y, CELL_WIDTH, CELL_HEIGHT, text, primary_font_name, 15);
       memmove(&floor_description_cells[i], cell, sizeof(struct LabeledCell));
    }
 }
@@ -254,7 +258,7 @@ void create_status_header_cells() {
 	 sprintf(num_char, "%d", i);
 	 text[0] = num_char[0];
       }
-      struct LabeledCell *cell = construct_labeled_cell(cell_x, cell_y, CELL_WIDTH, CELL_HEIGHT, text, 15);
+      struct LabeledCell *cell = construct_labeled_cell(cell_x, cell_y, CELL_WIDTH, CELL_HEIGHT, text, secondary_font_name, 15);
       memmove(&status_header_cells[i], cell, sizeof(struct LabeledCell));
    } 
 }
@@ -264,43 +268,43 @@ void create_status_cells() {
    int start_y = status_header_cells[0].rect->y+CELL_HEIGHT+CELL_GAP;
    
    // Create status floor label cells
-   struct LabeledCell *floor_label = construct_labeled_cell(start_x, start_y, CELL_WIDTH, CELL_HEIGHT, "FLOOR", 15);
+   struct LabeledCell *floor_label = construct_labeled_cell(start_x, start_y, CELL_WIDTH, CELL_HEIGHT, "FLOOR", primary_font_name, 15);
    memmove(&status_floor_label_cell, floor_label, sizeof(struct LabeledCell));
 
-   struct LabeledCell *direction_cell = construct_labeled_cell(start_x, start_y+(CELL_HEIGHT), CELL_WIDTH, CELL_HEIGHT, "DIRECTION", 15);
+   struct LabeledCell *direction_cell = construct_labeled_cell(start_x, start_y+(CELL_HEIGHT), CELL_WIDTH, CELL_HEIGHT, "DIRECTION", primary_font_name, 15);
    memmove(&status_direction_label_cell, direction_cell, sizeof(struct LabeledCell));
 
-   struct LabeledCell *status_cell = construct_labeled_cell(start_x, start_y+(CELL_HEIGHT*2), CELL_WIDTH, CELL_HEIGHT, "STATUS", 15);
+   struct LabeledCell *status_cell = construct_labeled_cell(start_x, start_y+(CELL_HEIGHT*2), CELL_WIDTH, CELL_HEIGHT, "STATUS", primary_font_name, 15);
    memmove(&status_status_label_cell, status_cell, sizeof(struct LabeledCell));
 
    // Create car floor status cells
-   struct LabeledCell *car1_floor_cell = construct_labeled_cell(start_x+CELL_WIDTH, start_y, CELL_WIDTH, CELL_HEIGHT, "1", 15);
+   struct LabeledCell *car1_floor_cell = construct_labeled_cell(start_x+CELL_WIDTH, start_y, CELL_WIDTH, CELL_HEIGHT, "1", primary_font_name, 15);
    memmove(&status_car1_floor_cell, car1_floor_cell, sizeof(struct LabeledCell));
 
-   struct LabeledCell *car2_floor_cell = construct_labeled_cell(start_x+(CELL_WIDTH*2), start_y, CELL_WIDTH, CELL_HEIGHT, "1", 15);
+   struct LabeledCell *car2_floor_cell = construct_labeled_cell(start_x+(CELL_WIDTH*2), start_y, CELL_WIDTH, CELL_HEIGHT, "1",  primary_font_name,15);
    memmove(&status_car2_floor_cell, car2_floor_cell, sizeof(struct LabeledCell));
 
-   struct LabeledCell *car3_floor_cell = construct_labeled_cell(start_x+(CELL_WIDTH*3), start_y, CELL_WIDTH, CELL_HEIGHT, "1", 15);
+   struct LabeledCell *car3_floor_cell = construct_labeled_cell(start_x+(CELL_WIDTH*3), start_y, CELL_WIDTH, CELL_HEIGHT, "1", primary_font_name, 15);
    memmove(&status_car3_floor_cell, car3_floor_cell, sizeof(struct LabeledCell));
 
    // Create car direction status cells
-   struct LabeledCell *car1_direction_cell = construct_labeled_cell(start_x+CELL_WIDTH, start_y+CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT, "UP", 15);
+   struct LabeledCell *car1_direction_cell = construct_labeled_cell(start_x+CELL_WIDTH, start_y+CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT, "UP", primary_font_name, 15);
    memmove(&status_car1_direction_cell, car1_direction_cell, sizeof(struct LabeledCell));
 
-   struct LabeledCell *car2_direction_cell = construct_labeled_cell(start_x+(CELL_WIDTH*2), start_y+CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT, "UP", 15);
+   struct LabeledCell *car2_direction_cell = construct_labeled_cell(start_x+(CELL_WIDTH*2), start_y+CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT, "UP", primary_font_name, 15);
    memmove(&status_car2_direction_cell, car2_direction_cell, sizeof(struct LabeledCell));
 
-   struct LabeledCell *car3_direction_cell = construct_labeled_cell(start_x+(CELL_WIDTH*3), start_y+CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT, "UP", 15);
+   struct LabeledCell *car3_direction_cell = construct_labeled_cell(start_x+(CELL_WIDTH*3), start_y+CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT, "UP", primary_font_name, 15);
    memmove(&status_car3_direction_cell, car3_direction_cell, sizeof(struct LabeledCell));
 
    // Create car staus cells
-   struct LabeledCell *car1_status_cell = construct_labeled_cell(start_x+CELL_WIDTH, start_y+(CELL_HEIGHT*2), CELL_WIDTH, CELL_HEIGHT, "AUTOMATIC", 15);
+   struct LabeledCell *car1_status_cell = construct_labeled_cell(start_x+CELL_WIDTH, start_y+(CELL_HEIGHT*2), CELL_WIDTH, CELL_HEIGHT, "AUTOMATIC", primary_font_name, 15);
    memmove(&status_car1_status_cell, car1_status_cell, sizeof(struct LabeledCell));
 
-   struct LabeledCell *car2_status_cell = construct_labeled_cell(start_x+(CELL_WIDTH*2), start_y+(CELL_HEIGHT*2), CELL_WIDTH, CELL_HEIGHT, "AUTOMATIC", 15);
+   struct LabeledCell *car2_status_cell = construct_labeled_cell(start_x+(CELL_WIDTH*2), start_y+(CELL_HEIGHT*2), CELL_WIDTH, CELL_HEIGHT, "AUTOMATIC", primary_font_name, 15);
    memmove(&status_car2_status_cell, car2_status_cell, sizeof(struct LabeledCell));
 
-   struct LabeledCell *car3_status_cell = construct_labeled_cell(start_x+(CELL_WIDTH*3), start_y+(CELL_HEIGHT*2), CELL_WIDTH, CELL_HEIGHT, "AUTOMATIC", 15);
+   struct LabeledCell *car3_status_cell = construct_labeled_cell(start_x+(CELL_WIDTH*3), start_y+(CELL_HEIGHT*2), CELL_WIDTH, CELL_HEIGHT, "AUTOMATIC", primary_font_name, 15);
    memmove(&status_car3_status_cell, car3_status_cell, sizeof(struct LabeledCell));
 }
 
@@ -343,7 +347,7 @@ void draw_elevator_cells() {
 	 cell_ptr->rect
       );
       draw_labeled_cell(cell_ptr);
-
+      
       // Draw shaft cells that are on this floor
       for (int x = 0; x < SHAFTS_COUNT; x++) {
          SDL_Rect shaft_section;
@@ -354,33 +358,70 @@ void draw_elevator_cells() {
          SDL_SetRenderDrawColor(renderer, color_gray.r+100, color_gray.g+100, color_gray.b+100, 0);
          SDL_RenderDrawRect(renderer, &shaft_section);
 
-         int car1_floor = atoi(status_car1_floor_cell.text_struct->text);
-         int car2_floor = atoi(status_car2_floor_cell.text_struct->text);
-         int car3_floor = atoi(status_car3_floor_cell.text_struct->text);
-
 	 // Check if the car of this shaft is on the current (x iteation) floor
 	 int car_floor;
-         if (x == 0) car_floor = car1_floor;
-	 if (x == 1) car_floor = car2_floor;
-	 if (x == 2) car_floor = car3_floor;
+ 	 char *car_direction = NULL;
+
+	 if (x == 0) {
+            car_floor = atoi(status_car1_floor_cell.text_struct->text);
+	    car_direction = status_car1_direction_cell.text_struct->text;
+	 }
+	 else if (x == 1) {
+	    car_floor = atoi(status_car2_floor_cell.text_struct->text);
+	    car_direction = status_car2_direction_cell.text_struct->text;
+	 }
+	 else if (x == 2) {
+	    car_floor = atoi(status_car3_floor_cell.text_struct->text);
+	    car_direction = status_car3_direction_cell.text_struct->text;
+	 }
+
 	 if (car_floor == i) {
-	    SDL_Rect car;
-	    car.x = shaft_section.x+5;
-	    car.y = shaft_section.y+5;
-	    car.w = shaft_section.w-10;
-	    car.h = shaft_section.h-10;
-	    SDL_SetRenderDrawColor(renderer, 100, 100, 255, 0);
-	    SDL_RenderFillRect(renderer, &car);
+            // Draw triangle
+            int lines_count = CELL_HEIGHT-20;
+	    int triangle_width = CELL_WIDTH-20;
+	    int triangle_height = CELL_HEIGHT-20;
+	    int triangle_x = shaft_section.x+10;
+	    int triangle_y = shaft_section.y+10;
+	    struct Point { int x1; int y1; int x2; int y2; };
+	    struct Point line1 = { 0, 0, 0, 0 };
+	    struct Point line2 = { 0, 0, 0, 0 };
+	    struct Point line3 = { 0, 0, 0, 0 };
+
+	    if (car_direction == "DOWN") {
+	       line1.x1 = triangle_x;
+	       line1.y1 = triangle_y;
+	       line1.x2 = triangle_x+triangle_width;
+	       line1.y2 = triangle_y;
+	       line2.x1 = triangle_x;
+	       line2.y1 = triangle_y;
+	       line2.x2 = triangle_x+triangle_width/2;
+	       line2.y2 = triangle_y+triangle_height;
+	       line3.x1 = triangle_x+triangle_width;
+	       line3.y1 = triangle_y;
+	       line3.x2 = triangle_x+triangle_width/2;
+	       line3.y2 = triangle_y+triangle_height;
+	    } else {
+	       line1.x1 = triangle_x;
+	       line1.y1 = triangle_y+triangle_height;
+	       line1.x2 = triangle_x+triangle_width;
+	       line1.y2 = triangle_y+triangle_height;
+	       line2.x1 = triangle_x;
+	       line2.y1 = triangle_y+triangle_height;
+	       line2.x2 = triangle_x+triangle_width/2;
+	       line2.y2 = triangle_y;
+	       line3.x1 = triangle_x+triangle_width;
+	       line3.y1 = triangle_y+triangle_height;
+	       line3.x2 = triangle_x+triangle_width/2;
+	       line3.y2 = triangle_y;
+	    }
+	    SDL_SetRenderDrawColor(renderer, color_white.r, color_white.g, color_white.b, 0);
+	    SDL_RenderDrawLine(renderer, line1.x1, line1.y1, line1.x2, line1.y2);
+	    SDL_RenderDrawLine(renderer, line2.x1, line2.y1, line2.x2, line2.y2);
+            SDL_RenderDrawLine(renderer, line3.x1, line3.y1, line3.x2, line3.y2);
+	    // SDL_SetRenderDrawColor(renderer, 100, 100, 255, 0);
 	 }
       }
       iteration_counter++;
-   }
-   
-   // Draw shaft cells
-   for (int x = 0; x < SHAFTS_COUNT; x++) {
-      for (int y = 0; y < VISIBLE_FLOORS_COUNT; y++) { 
-        
-      }
    } 
 }
 
@@ -409,12 +450,21 @@ void draw_status_cells() {
    draw_labeled_cell(&status_car3_status_cell);
 }
 
-void draw_shafts() {
+void draw_top_menu() {
    
 }
 
-void draw_top_menu() {
-   
+void update_car_floor_status(struct LabeledCell *status_car_direction_cell, struct LabeledCell *status_car_floor_cell) {
+   int n = atoi(status_car_floor_cell->text_struct->text);
+   if (status_car_direction_cell->text_struct->text == "UP" && n < TOTAL_FLOORS_COUNT) {
+      n++;
+   } else if (status_car_direction_cell->text_struct->text == "DOWN" && n > 1) {
+      n--;
+   }
+   char *num_char = malloc(1);
+   memset(num_char, ' ', strlen(num_char));
+   sprintf(num_char, "%d", n);
+   update_text(status_car_floor_cell->text_struct, num_char); 
 }
 
 void increase_floor_display_index() {
@@ -441,16 +491,32 @@ void handle_events(SDL_Event *event) {
 	 case SDLK_DOWN:
 	    decrease_floor_display_index();
 	    break;
-	 case SDLK_n:
-	    int n = atoi(status_car1_floor_cell.text_struct->text);
-	    printf("Car 1 was on floor %d\n", n);
-	    if (n < TOTAL_FLOORS_COUNT) n++;
-	    char *num_char = malloc(1);
-	    memset(num_char, ' ', strlen(num_char));
-	    sprintf(num_char, "%d", n);
-	    update_text(status_car1_floor_cell.text_struct, num_char);
-	    printf("Stored value: <%s>\n", status_car1_floor_cell.text_struct->text);
-	    printf("Car 1 is on foor %c\n", num_char[0]); 
+	 case SDLK_b:
+	    update_car_floor_status(&status_car1_direction_cell, &status_car1_floor_cell);
+	    break;
+         case SDLK_n:
+	    update_car_floor_status(&status_car2_direction_cell, &status_car2_floor_cell);
+	    break;
+         case SDLK_m:
+	    update_car_floor_status(&status_car3_direction_cell, &status_car3_floor_cell);
+	    break;
+	 case SDLK_KP_7: 
+	    update_text(status_car1_direction_cell.text_struct, "UP");
+	    break;
+	 case SDLK_KP_4:
+            update_text(status_car1_direction_cell.text_struct, "DOWN");
+	    break;
+	 case SDLK_KP_8:
+            update_text(status_car2_direction_cell.text_struct, "UP");
+	    break;
+	 case SDLK_KP_5:
+            update_text(status_car2_direction_cell.text_struct, "DOWN");
+	    break;
+	 case SDLK_KP_9:
+	    update_text(status_car3_direction_cell.text_struct, "UP");
+	    break;
+	 case SDLK_KP_6:
+            update_text(status_car3_direction_cell.text_struct, "DOWN");
 	    break;
       }
    }		   
