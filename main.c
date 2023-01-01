@@ -343,7 +343,7 @@ void create_general_texts() {
    struct Text *text1 = construct_text_struct("KEY FUNCTIONS", 15, primary_font_name, &color_light_gray, help_x, help_y, NULL);
    memmove(&general_texts[2], text1, sizeof(struct Text));
 
-   struct Text *text2 = construct_text_struct("SCROLL SHAFTS : ARROW UP / DOWN", 15, primary_font_name, &color_light_gray, help_x, help_y+20+30, NULL);
+   struct Text *text2 = construct_text_struct("SCROLL FLOORS : ARROW UP / DOWN", 15, primary_font_name, &color_light_gray, help_x, help_y+20+30, NULL);
    memmove(&general_texts[3], text2, sizeof(struct Text));
 
    struct Text *text3 = construct_text_struct("CAR 1 DIRECTION UP : NUMPAD 7", 15, primary_font_name, &color_light_gray, help_x,  help_y+20+60, NULL);
