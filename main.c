@@ -512,10 +512,6 @@ void draw_general_texts() {
    }
 }
 
-void draw_top_menu() {
-   
-}
-
 void move_car(struct LabeledCell *status_car_direction_cell, struct LabeledCell *status_car_floor_cell) {
    int n = atoi(status_car_floor_cell->text_struct->text);
    if (status_car_direction_cell->text_struct->text == "UP" && n < TOTAL_FLOORS_COUNT) {
